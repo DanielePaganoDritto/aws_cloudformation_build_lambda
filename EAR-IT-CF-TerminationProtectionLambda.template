@@ -1,0 +1,144 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template to create Lambda Function",
+  "Resources": {
+    "EnableTerminationProtectionRole":{
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+          "AssumeRolePolicyDocument": {
+            "Version" : "2012-10-17",
+            "Statement": [ {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [ "lambda.amazonaws.com", "edgelambda.amazonaws.com" ]
+                },
+                "Action": [ "sts:AssumeRole" ]
+            } ]
+          },
+          "Description" : "Role for AWSLambdaEnableTerminationProtection Lambda Functions",
+          "RoleName" : "AWSLambdaEnableTerminationProtection",
+        }
+    },
+    "Ec2PolicyEnable": {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+          "PolicyName" : "EC2-AWSLambdaEnableTerminationProtection",
+          "Roles" : [{"Ref": "EnableTerminationProtectionRole"}],
+          "PolicyDocument" : {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+                "Effect" : "Allow",
+                "Action" : [
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeInstanceStatus",
+                  "ec2:DescribeInstanceAttribute",
+                  "ec2:ModifyInstanceAttribute"
+                ],
+                "Resource": "*",
+              }],
+          }     
+      }
+    },
+    "SNSPolicyEnable": {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+          "PolicyName" : "SNS-AWSLambdaEnableTerminationProtection",
+          "Roles" : [{"Ref": "EnableTerminationProtectionRole"}],
+          "PolicyDocument" : {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+                "Effect" : "Allow",
+                "Action" : [
+                  "sns:Publish"
+                ],
+                "Resource": "*",
+              }],
+          }     
+      }
+    },
+    "ELBPolicyEnable": {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+          "PolicyName" : "ELB-AWSLambdaEnableTerminationProtection",
+          "Roles" : [{"Ref": "EnableTerminationProtectionRole"}],
+          "PolicyDocument" : {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+                "Effect" : "Allow",
+                "Action" : [
+                  "elasticloadbalancing:DescribeLoadBalancerAttributes",
+                  "elasticloadbalancing:DescribeLoadBalancers",
+                  "elasticloadbalancing:ModifyLoadBalancerAttributes"
+                ],
+                "Resource": "*",
+              }],
+          }     
+      }
+    },
+    "RDSPolicyEnable": {
+      "Type" : "AWS::IAM::Policy",
+      "Properties" : {
+          "PolicyName" : "RDS-AWSLambdaEnableTerminationProtection",
+          "Roles" : [{"Ref": "EnableTerminationProtectionRole"}],
+          "PolicyDocument" : {
+              "Version" : "2012-10-17",
+              "Statement": [ {
+                "Effect" : "Allow",
+                "Action" : [
+                  "rds:DescribeDBInstances",
+                  "rds:ModifyDBInstance"
+                ],
+                "Resource": "*",
+              }],
+          }     
+      }
+    },
+    "LambdaEnableFunction": {
+      "Type" : "AWS::Lambda::Function",
+      "Properties" : {
+          "Code" : {
+            "S3Bucket": "fr-qa-lambda-function",
+            "S3Key": "python-script/EAR-IT-Lambda-EnableTerminationProtection.zip"
+          },
+          "Description" : "LambdaFunction to enable termination protection for all resources (EC2, ELB, RDS) in the account",
+          "FunctionName" : "AWSLambdaEnableTerminationProtection",
+          "Handler" : "EAR-IT-Lambda-EnableTerminationProtection.lambda_handler",
+          "MemorySize" : "128",
+          "Role" : {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/AWSLambdaEnableTerminationProtection"},
+          "Runtime" : "python3.7",
+          "Timeout" : "300"
+      },
+      "DependsOn": "EnableTerminationProtectionRole"
+    }
+  },
+  "Outputs": {
+    "EnableTerminatinoRoleARN": {
+      "Description": "Lambda Enable Execution Role",
+      "Value": { "Fn::GetAtt": [ "EnableTerminationProtectionRole", "Arn"]}
+    },
+    "EnableEc2Policy": {
+      "Description": "Ec2 Write Policy",
+      "Value": {"Ref": "Ec2PolicyEnable"},
+    },
+    "EnableELBPolicy": {
+      "Description": "ELB Write Policy",
+      "Value": {"Ref": "ELBPolicyEnable"},
+    },
+    "CheckEnablePolicy": {
+      "Description": "RDS Enable Policy",
+      "Value": {"Ref": "RDSPolicyEnable"},
+    },
+    "CheckSNSPolicy": {
+      "Description": "SNS Write Policy",
+      "Value": {"Ref": "SNSPolicyEnable"},
+    },
+    "CheckTerminatinoFunctionARN": {
+      "Description": "Lambda Check Protection Function",
+      "Value": { "Fn::GetAtt": [ "LambdaCheckFunction", "Arn"]}
+    },
+    "EnableTerminatinoFunctionARN": {
+      "Description": "Lambda Enable Protection Function",
+      "Value": { "Fn::GetAtt": [ "LambdaEnableFunction", "Arn"]}
+    }
+  }
+}
